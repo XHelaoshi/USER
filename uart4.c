@@ -55,7 +55,7 @@ void Init_Uart4(u32 baudrate)
 
 void Init_Uart4_RxDMA()
 {
-  NVIC_InitTypeDef NVIC_InitStructure;
+//  NVIC_InitTypeDef NVIC_InitStructure;
   DMA_InitTypeDef  DMA_InitStructure;
     
   /* Enable DMA clock */
@@ -133,10 +133,6 @@ void UART4_IRQHandler(void)
     u32 len;
     u32 i;
     
-    
-//    USART_ITConfig(UART4, USART_IT_IDLE, DISABLE);
-//    USART_ITConfig(UART4, USART_IT_RXNE, ENABLE);
-    
     DMA_Cmd(DMA1_Stream2, DISABLE);
     len = UART4_MAX_RECV_LEN - DMA_GetCurrDataCounter(DMA1_Stream2);
     if(len > 0)
@@ -149,10 +145,10 @@ void UART4_IRQHandler(void)
     DMA1_Stream2->NDTR = UART4_MAX_RECV_LEN;
     DMA_Cmd(DMA1_Stream2, ENABLE);
     
-    USART1->DR = '#';
+    //USART1->DR = '#';
     
     i = UART4->SR;
-    i = UART4->DR;
+    i = UART4->DR; //«ÂIDLE±Í÷æ
 
   }
 }

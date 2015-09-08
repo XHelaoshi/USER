@@ -73,7 +73,7 @@ void Init_Tim(void);
   * @param  None
   * @retval None
   */
-int main(void)
+int old_main(void)
 {
   /*!< At this stage the microcontroller clock setting is already configured, 
        this is done through SystemInit() function which is called from startup
@@ -86,6 +86,7 @@ int main(void)
 
   RCC_ClocksTypeDef RCC_Clocks;
   GPIO_InitTypeDef GPIO_InitStructure;
+  u8 gps_ack = 0xff;
   
   /* SysTick end of count event each 1ms */
   RCC_GetClocksFreq(&RCC_Clocks);
@@ -134,31 +135,31 @@ int main(void)
   
   /* Add your application code here */
   Init_Usart1(115200);
-  OLED_Init();
+  OLED_Init();//32*128 piexs
   Init_MPU9250();
 //  OLED_String(0,0,"MPU-9250 9-Axis Sensor");
 //  init_quaternion();
 //  OLED_Clear();
   //OLED_String(0,0,"MPU-9250 9-Axis Sensor");
-  OLED_String(1,10,"Pitch:");
-  OLED_String(2,10,"Roll: ");
-  OLED_String(3,10,"Yaw:  ");
+  OLED_String(1,0,"Pitch:");//(line num(0~3),row piex pos(0~127),"xxxxx")
+  OLED_String(2,0,"Roll: ");
+  OLED_String(3,0,"Yaw:  ");
   Init_Tim();
-//  Init_Uart4(9600);
 
-  Init_Uart4(9600);
-//  if(Ublox_Cfg_Rate(250,1)!=0)
-//  {
-//    while((Ublox_Cfg_Rate(250,1)!=0)&&key)
-//    {
-//      Init_Uart4(9600);
-//      Ublox_Cfg_Prt(115200);
-//      Init_Uart4(115200);
-//      Ublox_Cfg_Tp(1000000,100000,1);  
-//      key=Ublox_Cfg_Cfg_Save();
-//    }
-//  }
-//  
+
+  Init_Uart4(UART4_BAUDRATE);
+  if(Ublox_Cfg_Rate(250,1)!=0)
+  {
+    while((Ublox_Cfg_Rate(250,1)!=0)&&gps_ack)
+    {
+      Init_Uart4(GPS_DEFAULT_BAUDRATE);
+      Ublox_Cfg_Prt(UART4_BAUDRATE);
+      Init_Uart4(UART4_BAUDRATE);
+      Ublox_Cfg_Tp(1000000,100000,1);  
+      gps_ack=Ublox_Cfg_Cfg_Save();
+    }
+  }
+  
     
   /* Infinite loop */
   while (1)
@@ -173,11 +174,11 @@ int main(void)
       sum_roll  = 0;
       sum_yaw   = 0;
       sprintf(str, "% 3.1f   ", final_pitch);
-      OLED_String(1,40,(u8 *)str);
+      OLED_String(1,30,(u8 *)str);
       sprintf(str, "% 3.1f   ", final_roll);
-      OLED_String(2,40,(u8 *)str);
+      OLED_String(2,30,(u8 *)str);
       sprintf(str, "% 3.1f   ", final_yaw);
-      OLED_String(3,40,(u8 *)str);
+      OLED_String(3,30,(u8 *)str);
     }
     if(gps_uart_flag)
     {
@@ -203,6 +204,8 @@ int main(void)
           OLED_String(0,68,(u8 *)str);
         }
       }
+      sprintf(str, "%02d:%02d:%02d.%02d", (gpsx.utc.hour+8)%24, gpsx.utc.min, gpsx.utc.sec, gpsx.utc.ms);
+      OLED_String(1,70,(u8 *)str);
       gps_uart_flag = 0;
       //u1_printf(GPS_DATA);
       //u1_printf("\r\n\r\n\r\n");
@@ -215,6 +218,7 @@ int main(void)
   * @param  nTime: specifies the delay time length, in milliseconds.
   * @retval None
   */
+
 void DelayUS(__IO uint32_t nTime)
 { 
   uwTimingDelay = nTime;
@@ -248,10 +252,10 @@ void Init_Tim(void)
   TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
   
   /* TIM3 clock enable */
-  RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
+  RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
 
   /* Enable the TIM3 global Interrupt */
-  NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
+  NVIC_InitStructure.NVIC_IRQChannel = TIM4_IRQn;
   NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
   NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
   NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
@@ -263,13 +267,13 @@ void Init_Tim(void)
   TIM_TimeBaseStructure.TIM_ClockDivision = 0;
   TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 
-  TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
+  TIM_TimeBaseInit(TIM4, &TIM_TimeBaseStructure);
   
   /* TIM Interrupts enable */
-  TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
+  TIM_ITConfig(TIM4, TIM_IT_Update, ENABLE);
 
   /* TIM3 enable counter */
-  TIM_Cmd(TIM3, ENABLE);
+  TIM_Cmd(TIM4, ENABLE);
   
   
 //  /* TIM4 clock enable */
@@ -297,9 +301,9 @@ void Init_Tim(void)
 //  TIM_Cmd(TIM4, ENABLE);
 }
 
-void TIM3_IRQHandler(void)
+void TIM4_IRQHandler(void)
 {
-  if (TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET)
+  if (TIM_GetITStatus(TIM4, TIM_IT_Update) != RESET)
   {
     TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
     READ_MPU9250_ACCEL();

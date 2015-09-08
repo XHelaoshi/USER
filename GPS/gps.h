@@ -28,9 +28,9 @@ __packed typedef struct
  	u8 svnum;					//可见卫星数
 	nmea_slmsg slmsg[12];		//最多12颗卫星
 	nmea_utc_time utc;			//UTC时间
-	long long latitude;				//纬度 分扩大100000倍,实际要除以100000
+	u32 latitude;				//纬度 分扩大100000倍,实际要除以100000
 	u8 nshemi;					//北纬/南纬,N:北纬;S:南纬				  
-	long long longitude;			    //经度 分扩大100000倍,实际要除以100000
+	u32 longitude;			    //经度 分扩大100000倍,实际要除以100000
 	u8 ewhemi;					//东经/西经,E:东经;W:西经
 	u8 gpssta;					//GPS状态:0,未定位;1,非差分定位;2,差分定位;6,正在估算.				  
  	u8 posslnum;				//用于定位的卫星数,0~12.
@@ -131,7 +131,7 @@ __packed typedef struct
 	u8  ckb;					//校验CK_B							 	 
 }_ublox_cfg_rate; 
 				 
-long long NMEA_Str2num(u8 *buf,u8*dx);
+u32 NMEA_Str2num(u8 *buf,u8*dx);
 void GPS_Analysis(nmea_msg *gpsx,u8 *buf);
 void NMEA_GPGSV_Analysis(nmea_msg *gpsx,u8 *buf);
 void NMEA_GPGGA_Analysis(nmea_msg *gpsx,u8 *buf);

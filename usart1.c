@@ -43,12 +43,12 @@ void Init_Usart1(u32 baudrate)
   USART_Cmd(USART1, ENABLE);
 }
 
-void USART1_IRQHandler(void)
-{
-  if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)
-  {
-  }                     
-}
+//void USART1_IRQHandler(void)
+//{
+//  if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)
+//  {
+//  }                     
+//}
 
 void u1_printf(char* fmt,...)  
 {  
