@@ -36,10 +36,10 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stdint.h"    
-
+void Sdram_thread_entry(void* parameter);
 void SRAM_Init(void);
 //void SRAM_WriteBuffer(uint16_t* pBuffer, uint32_t WriteAddr, uint32_t NumHalfwordToWrite);
-//void SRAM_ReadBuffer(uint16_t* pBuffer, uint32_t ReadAddr, uint32_t NumHalfwordToRead);
+void SRAM_ReadBuffer(uint32_t* pBuffer, uint32_t ReadAddr, uint32_t NumHalfwordToRead);
 
 #ifdef __cplusplus
 }

@@ -22,9 +22,9 @@
 #include "stm32f4xx.h"
 #include <board.h>
 #include <rtthread.h>
-
+#include "spi_bus.h"
 #include "sysdelay.h"
-
+#include "spi_user.h"
 #ifdef RT_USING_DFS
 /* dfs init */
 #include <dfs_init.h>
@@ -44,11 +44,14 @@
 #include "stm32_eth.h"
 #endif
 struct rt_semaphore rt_tim3_sem;
+struct rt_semaphore rt_sram_sem;
 extern void rt_bt_thread_entry(void * para);
+extern void Sram_thread_entry(void* parameter);
+extern void spi_thread_entry();
 void rt_user_mb_init(void)
 {
 	rt_sem_init(&rt_tim3_sem, "tim3", 0, RT_IPC_FLAG_FIFO);
-	//rt_sem_init(&rt_camera_sem, "camera", 0, RT_IPC_FLAG_FIFO);
+	rt_sem_init(&rt_sram_sem, "sram", 0, RT_IPC_FLAG_FIFO);
 	
 }
 
@@ -85,9 +88,9 @@ void rt_init_thread_entry(void* parameter)
     }
 #endif
 
-//FS
+//spi_init
+rt_hw_spi3_init();
 
-//GUI
 }
 
 int rt_application_init()
@@ -103,29 +106,22 @@ int rt_application_init()
                                    rt_init_thread_entry, RT_NULL,
                                    2048, 80, 20);
 #endif
-/*
-    if (init_thread != RT_NULL)
+
+
+		
+		
+		
+			if (init_thread != RT_NULL)
         rt_thread_startup(init_thread);
-
-    //------- init led1 thread
-    rt_thread_init(&thread_led1,
-                   "led1",
-                   rt_thread_entry_led1,
-                   RT_NULL,
-                   &thread_led1_stack[0],
-                   sizeof(thread_led1_stack),11,5);
-    rt_thread_startup(&thread_led1);
-
-    //------- init led2 thread
-    rt_thread_init(&thread_led2,
-                   "led2",
-                   rt_thread_entry_led2,
-                   RT_NULL,
-                   &thread_led2_stack[0],
-                   sizeof(thread_led2_stack),11,5);
-    rt_thread_startup(&thread_led2);
-*/
-/*
+//		init_thread = rt_thread_create("bt",
+//                                   rt_bt_thread_entry, RT_NULL,
+//                                   2048, 0x5, 20);
+//		if (init_thread != RT_NULL)
+//		 rt_thread_startup(init_thread);
+		//
+		init_thread = rt_thread_create("Sdram_init",
+                                   Sram_thread_entry, RT_NULL,
+                                   2048, 0x12, 20);
 		if (init_thread != RT_NULL)
         rt_thread_startup(init_thread);
 		//usb host
@@ -137,19 +133,16 @@ int rt_application_init()
 		
 		init_thread = rt_thread_create("TIM3_init",
                                    Tim3_thread_entry, RT_NULL,
-																	2048, 0x12, 20);		
+																	2048, 0x12, 20);	
+		if (init_thread != RT_NULL)
+        rt_thread_startup(init_thread);
+		//spi
+		init_thread = rt_thread_create("spi_user",
+                                   spi_thread_entry, RT_NULL,
+                                   2048, 0x9, 20);
     if (init_thread != RT_NULL)
         rt_thread_startup(init_thread);                              
 		rt_user_mb_init();
-*/		
-		
-			if (init_thread != RT_NULL)
-        rt_thread_startup(init_thread);
-		init_thread = rt_thread_create("bt",
-                                   rt_bt_thread_entry, RT_NULL,
-                                   2048, 0x5, 20);
-		if (init_thread != RT_NULL)
-		 rt_thread_startup(init_thread);
     return 0;
 }
 

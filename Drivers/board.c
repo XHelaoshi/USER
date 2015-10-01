@@ -17,7 +17,7 @@
 
 #include "stm32f4xx.h"
 #include "board.h"
-
+#include "spi_bus.h"
 /**
  * @addtogroup STM32
  */
@@ -145,6 +145,7 @@ void rt_hw_board_init()
 	SysTick_Configuration();
 	BtClkConfig();
 	rt_hw_usart_init();
+	
 #ifdef RT_USING_CONSOLE
 	rt_console_set_device(CONSOLE_DEVICE);
 #endif
