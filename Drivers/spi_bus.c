@@ -170,7 +170,7 @@ static struct rt_spi_device *spi_user;
  
                  if(recv_ptr != RT_NULL)
                  {
-                     *recv_ptr   = data;
+                     *(recv_ptr +message->length-1-size)  = data;
                  }
              }
          }
@@ -200,7 +200,7 @@ static struct rt_spi_device *spi_user;
  
                  if(recv_ptr != RT_NULL)
                  {
-                     *recv_ptr   = data;
+                     *(recv_ptr +message->length-1-size)  = data;
                  }
              }
          }
@@ -310,7 +310,7 @@ void rt_hw_spi3_init(void)
 			rt_spi_device->bus->owner = rt_spi_device;
 			cfg.data_width = 8;
 			cfg.mode = RT_SPI_MODE_3 | RT_SPI_MSB; /* SPI Compatible: Mode 0 and Mode 3 */
-			cfg.max_hz = 42 * 1000 * 1000; /* 50M */
+			cfg.max_hz = 2000000;//42 * 1000 * 1000; /* 50M */
 			rt_spi_configure(rt_spi_device, &cfg);		
 		}
 }
@@ -318,9 +318,9 @@ void spi_user_sendbytes(uint8_t *address,const void *date,uint16_t length)
 {
 		rt_spi_send_then_send(spi_user,address,1,date,length);
 }
-void spi_user_readbytes(uint8_t *address,uint32_t *date,uint16_t length)
+void spi_user_readbytes(uint8_t *address,void *date,uint16_t length)
 {
-	rt_spi_send_then_recv(spi_user, &address, 1, &date, length);
+	rt_spi_send_then_recv(spi_user, address, 1, date, length);
 }
 //SPI_InitTypeDef  SPI_InitStructure;
 /**

@@ -24,5 +24,5 @@ rt_err_t stm32_spi_register(SPI_TypeDef * SPI,
                             const char * spi_bus_name);
 void rt_hw_spi3_init(void);
 void spi_user_sendbytes(uint8_t *address,const void *date,uint16_t length);
-void spi_user_readbytes(uint8_t *address,uint32_t *date,uint16_t length);
+void spi_user_readbytes(uint8_t *address,void *date,uint16_t length);
 #endif
