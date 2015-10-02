@@ -155,7 +155,7 @@ static struct rt_spi_device *spi_user;
  
                  if(send_ptr != RT_NULL)
                  {
-                     data = *send_ptr  ;
+                     data = *(send_ptr+message->length-1-size)  ;//发送多字节数据时指针增加
                  }
  
                  //Wait until the transmit buffer is empty
@@ -185,7 +185,7 @@ static struct rt_spi_device *spi_user;
  
                  if(send_ptr != RT_NULL)
                  {
-                     data = *send_ptr  ;
+                     data = *(send_ptr+message->length-1-size)  ;//发送多字节数据时指针增加
                  }
  
                  //Wait until the transmit buffer is empty
