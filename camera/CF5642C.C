@@ -1,179 +1,14 @@
 #include "CF5642C.h"
 #include "sccb.h"
-               // Device header
+#include "stm32f4xx_dcmi.h"               // Device header
 #include "sysdelay.h"
 #include <absacc.h> 
 #include "rtthread.h"
 #include "camera.h"
 #define DCMI_DR_ADDRESS       	0x50050028 // 0x50000000 + 0x00050000 + 0x00000028
-__IO uint32_t RAM_Buffer[JPEG_BUFFER_CNT*(JPEG_BUFFER_SIZE+1)] __attribute__((at(0xD0000000))); //__at (0xD0000000);
 extern int dma_freebuf_ok;
 int First_Capture = 1;
 int frex_send_ok=0;
-void CF5642C_GPIO_Init(void)
-{
-  GPIO_InitTypeDef GPIO_InitStructure;
-	
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_GPIOC \
-                      	| RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOE | RCC_AHB1Periph_GPIOH \
-												| RCC_AHB1Periph_GPIOI , ENABLE);   
-	
-	GPIO_PinAFConfig(CF5642C_HSYNC_GPIO_PORT, GPIO_PinSource4, GPIO_AF_DCMI);//DCMI_HSYNC   *****	
-	GPIO_PinAFConfig(CF5642C_PIXCLK_GPIO_PORT, GPIO_PinSource6, GPIO_AF_DCMI);    //PIXCLK
-	GPIO_PinAFConfig(CF5642C_VSYNC_GPIO_PORT, GPIO_PinSource7, GPIO_AF_DCMI);//DCMI_VSYNC 
-	GPIO_PinAFConfig(CF5642C_D6_GPIO_PORT, GPIO_PinSource8, GPIO_AF_DCMI);   //D6
-	GPIO_PinAFConfig(CF5642C_D7_GPIO_PORT, GPIO_PinSource9, GPIO_AF_DCMI);   //D7
-	GPIO_PinAFConfig(CF5642C_D0_GPIO_PORT, GPIO_PinSource6, GPIO_AF_DCMI);   //D0
-	GPIO_PinAFConfig(CF5642C_D1_GPIO_PORT, GPIO_PinSource7, GPIO_AF_DCMI);   //D1
-	GPIO_PinAFConfig(CF5642C_D2_GPIO_PORT, GPIO_PinSource8, GPIO_AF_DCMI);   //D2
-	GPIO_PinAFConfig(CF5642C_D4_GPIO_PORT, GPIO_PinSource11, GPIO_AF_DCMI);  //D4
-	GPIO_PinAFConfig(CF5642C_D5_GPIO_PORT, GPIO_PinSource3, GPIO_AF_DCMI);   //D5
-	GPIO_PinAFConfig(CF5642C_D3_GPIO_PORT, GPIO_PinSource12, GPIO_AF_DCMI);  //D3
-   // HSYNC
-  GPIO_InitStructure.GPIO_Pin = CF5642C_HSYNC_PIN ;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF ;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz ;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP ;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP ;
-  GPIO_Init(CF5642C_HSYNC_GPIO_PORT, &GPIO_InitStructure);
- //PIXCLK
-  GPIO_InitStructure.GPIO_Pin = CF5642C_PIXCLK_PIN ;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF ;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz ;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP ;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP ;
-  GPIO_Init(CF5642C_PIXCLK_GPIO_PORT, &GPIO_InitStructure);
-
-	//VSYNC D6 D7 
-  GPIO_InitStructure.GPIO_Pin = CF5642C_VSYNC_PIN | CF5642C_D6_PIN | CF5642C_D7_PIN ;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF ;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz ;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP ;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP ;
-  GPIO_Init(GPIOB, &GPIO_InitStructure);
-	//D0 D1 D2  D4
-  GPIO_InitStructure.GPIO_Pin = CF5642C_D0_PIN | CF5642C_D1_PIN | CF5642C_D2_PIN | CF5642C_D4_PIN ;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF ;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz ;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP ;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP ;
-  GPIO_Init(GPIOC, &GPIO_InitStructure);
-	//D5 
-  GPIO_InitStructure.GPIO_Pin = CF5642C_D5_PIN ;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF ;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz ;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP ;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP ;
-  GPIO_Init(GPIOD, &GPIO_InitStructure);
-	//D3
-	GPIO_InitStructure.GPIO_Pin = CF5642C_D3_PIN ;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF ;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz ;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP ;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP ;
-  GPIO_Init(GPIOH, &GPIO_InitStructure);
-}
-
-void CF5642C_DCMI_Init(void)
-{
-		DCMI_InitTypeDef  DCMI_InitStructure;
-		NVIC_InitTypeDef NVIC_InitStructure;
-		//DCMI
-		RCC_AHB2PeriphClockCmd(RCC_AHB2Periph_DCMI, ENABLE);
-	
-		DCMI_DeInit();
-		DCMI_InitStructure.DCMI_CaptureMode = DCMI_CaptureMode_Continuous; //DCMI_CaptureMode_SnapShot;   //DCMI_CaptureMode_Continuous; //连续模式		  只能是连续模式
-		DCMI_InitStructure.DCMI_SynchroMode = DCMI_SynchroMode_Hardware;	 //硬件
-		DCMI_InitStructure.DCMI_PCKPolarity = DCMI_PCKPolarity_Rising;	 //下降捕获
-		DCMI_InitStructure.DCMI_VSPolarity = DCMI_VSPolarity_High;		 //极性高
-		DCMI_InitStructure.DCMI_HSPolarity = DCMI_HSPolarity_Low;		 //极性高
-		DCMI_InitStructure.DCMI_CaptureRate = DCMI_CaptureRate_All_Frame;	 //捕获所有频率	  ALL的时候 速度最快
-		DCMI_InitStructure.DCMI_ExtendedDataMode = DCMI_ExtendedDataMode_8b;		 //只能8B 改为其他的 全屏蓝
-		DCMI_Init(&DCMI_InitStructure);
-	
-		DCMI_JPEGCmd(ENABLE);
-		DCMI_ITConfig(DCMI_IT_VSYNC,ENABLE);//DCMI 捕获完成中断
-    NVIC_SetVectorTable(NVIC_VectTab_FLASH, 0x0);
-	
-  	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
-  	NVIC_InitStructure.NVIC_IRQChannel = DCMI_IRQn;
-  	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
-  	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
-  	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-  	NVIC_Init(&NVIC_InitStructure);
-}
-void CF5642C_DMA_Init(void)
-{
-	DMA_InitTypeDef   DMA_InitStructure;
-	NVIC_InitTypeDef NVIC_InitStructure;
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2, ENABLE);
-	//DMA
-	DMA_DeInit(DMA2_Stream1);		 //只有STREAM1的通道1是对应DCMI的
-	DMA_InitStructure.DMA_Channel = DMA_Channel_1;  
-	DMA_InitStructure.DMA_PeripheralBaseAddr =  (uint32_t)(&DCMI->DR);     //DCMI_DR_ADDRESS;	
-	DMA_InitStructure.DMA_Memory0BaseAddr =(uint32_t) RAM_Buffer;
-	
-	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralToMemory;
-	DMA_InitStructure.DMA_BufferSize = JPEG_BUFFER_SIZE; //picture_x * picture_y * 2 / 4; //大小由发送的源决定
-	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;    // DMA_MemoryInc_Disable; 
-	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Word;//32位
-	DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Word;//16位
-	DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;//DMA_Mode_Circular
-	DMA_InitStructure.DMA_Priority = DMA_Priority_VeryHigh;
-	DMA_InitStructure.DMA_FIFOMode = DMA_FIFOMode_Enable;
-	DMA_InitStructure.DMA_FIFOThreshold = DMA_FIFOThreshold_Full;
-	DMA_InitStructure.DMA_MemoryBurst = DMA_MemoryBurst_Single;
-	DMA_InitStructure.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
-	
-	DMA_DoubleBufferModeConfig(DMA2_Stream1,(uint32_t)&RAM_Buffer[JPEG_BUFFER_SIZE],DMA_Memory_0);
-	DMA_DoubleBufferModeCmd(DMA2_Stream1,ENABLE);
-	
-	DMA_Init(DMA2_Stream1, &DMA_InitStructure);	
-	
-	dma_freebuf_ok=0;
-	
-	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
-	NVIC_InitStructure.NVIC_IRQChannel = DMA2_Stream1_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init(&NVIC_InitStructure);
-	DMA_ITConfig(DMA2_Stream1,DMA_IT_TC,ENABLE);//
-
-}
-void OverTrans_DMA_Init(uint32_t *Buffer)
-{
-	DMA_InitTypeDef   DMA_InitStructure;
-	DMA_Cmd(DMA2_Stream1, DISABLE);
-	DMA_DeInit(DMA2_Stream1);		 //只有STREAM1的通道1是对应DCMI的
-	DMA_InitStructure.DMA_Channel = DMA_Channel_1;  
-	DMA_InitStructure.DMA_PeripheralBaseAddr =  (uint32_t)(&DCMI->DR);     //DCMI_DR_ADDRESS;	
-	DMA_InitStructure.DMA_Memory0BaseAddr =(uint32_t)Buffer;	
-	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralToMemory;
-	DMA_InitStructure.DMA_BufferSize = JPEG_BUFFER_SIZE; //picture_x * picture_y * 2 / 4; //大小由发送的源决定
-	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;    // DMA_MemoryInc_Disable; 
-	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Word;//32位
-	DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Word;//16位
-	DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;//DMA_Mode_Circular
-	DMA_InitStructure.DMA_Priority = DMA_Priority_VeryHigh;
-	DMA_InitStructure.DMA_FIFOMode = DMA_FIFOMode_Enable;
-	DMA_InitStructure.DMA_FIFOThreshold = DMA_FIFOThreshold_Full;
-	DMA_InitStructure.DMA_MemoryBurst = DMA_MemoryBurst_Single;
-	DMA_InitStructure.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;	
-		
-	
-	DMA_Init(DMA2_Stream1, &DMA_InitStructure);	
-	DMA_ITConfig(DMA2_Stream1,DMA_IT_TC,ENABLE);//
-}
-/********************************************************************
-
-********************************************************************/
-
-
-
-
 unsigned char write_i2c(unsigned int regID, unsigned char regDat)
 {//返回值为1  为正常
 	SCCB_Start();
@@ -1509,9 +1344,9 @@ unsigned char CF5642C_init(void)
 {
 		unsigned char temp;
 
-		CF5642C_GPIO_Init();
-    CF5642C_DCMI_Init();
-		CF5642C_DMA_Init();
+	//	CF5642C_GPIO_Init();
+  //  CF5642C_DCMI_Init();
+	//	CF5642C_DMA_Init();
 	
 		SCCB_GPIO_Init();//io init..
 					 
@@ -1545,8 +1380,8 @@ unsigned char CF5642C_init(void)
 		write_i2c(0x460b ,0x35);
 		
 		//I2c_mode();
-//		write_i2c(0x503d , 0x80);
-//    write_i2c(0x503e, 0x00);
+		write_i2c(0x503d , 0x80);
+    write_i2c(0x503e, 0x00);
 //		VGA_jpeg_Preview();
 //		XGA_jpeg_Preview();
 		//Cam_Frex();
@@ -1559,22 +1394,18 @@ unsigned char CF5642C_init(void)
 
 void Cam_Start(void)
 {
-  	DMA_Cmd(DMA2_Stream1, ENABLE); 
-  	DCMI_Cmd(ENABLE); 
-  	DCMI_CaptureCmd(ENABLE); 
+  
 }
 void Cam_Stop(void)
 {
-		DMA_Cmd(DMA2_Stream1, DISABLE); 
-  	DCMI_Cmd(DISABLE); 
-  	DCMI_CaptureCmd(DISABLE); 
+		
 }
 #define Capture_Framerate	500
 #define Preview_FrameRate	1500
 extern int fenbianlv;
 void Cam_Capture(void)
 {
-		int i=0;
+//		int i=0;
 		uint8_t Gain,CaptureMaxlineLow,CaptureMaxlineHigh,PreviewMaxlineHigh,PreviewMaxlineLow,ExposureLow,ExposureMid,ExposureHigh;
 	  int Preview_MaxLines,Capture_MaxLines,Lines_10ms;
 		long ulCapture_Exposure,ulCapture_Exposure_Gain,ulPreviewExposure,iCapture_Gain;
@@ -1599,7 +1430,7 @@ void Cam_Capture(void)
 			switch(fenbianlv)
 			{
 				case 0:qvga_capture();
-							 goto CAPTURE;break;
+							 goto CAPTURE;
 				case 1:vga_capture();break;
 				case 2:xga_capture();break;
 				case 3:qxga_capture();break;
@@ -1679,6 +1510,5 @@ void Cam_Frex()
 {
 	frex_send_ok=1;
 	write_i2c(0x3b08,0xff);	
-	
 }
 

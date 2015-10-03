@@ -25,6 +25,7 @@
 #include "spi_bus.h"
 #include "sysdelay.h"
 #include "spi_user.h"
+#include "camera.h"
 #ifdef RT_USING_DFS
 /* dfs init */
 #include <dfs_init.h>
@@ -134,12 +135,18 @@ int rt_application_init()
 		init_thread = rt_thread_create("TIM3_init",
                                    Tim3_thread_entry, RT_NULL,
 																	2048, 0x12, 20);	
+//		if (init_thread != RT_NULL)
+//        rt_thread_startup(init_thread);
+//		//spi
+//		init_thread = rt_thread_create("spi_user",
+//                                   spi_thread_entry, RT_NULL,
+//                                   2048, 0x9, 20);
 		if (init_thread != RT_NULL)
         rt_thread_startup(init_thread);
-		//spi
-		init_thread = rt_thread_create("spi_user",
-                                   spi_thread_entry, RT_NULL,
-                                   2048, 0x9, 20);
+		
+		init_thread = rt_thread_create("Camera_init",
+                                   Camera_thread_entry, RT_NULL,
+                                   2048, 0x10, 20);
     if (init_thread != RT_NULL)
         rt_thread_startup(init_thread);                              
 		rt_user_mb_init();

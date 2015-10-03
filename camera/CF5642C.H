@@ -59,14 +59,14 @@
 #define picture_y 240
 
 
-void CF5642C_GPIO_Init(void);
-void CF5642C_DCMI_Init(void);
-void CF5642C_DMA_Init(void);
+//void CF5642C_GPIO_Init(void);
+//void CF5642C_DCMI_Init(void);
+//void CF5642C_DMA_Init(void);
 void Cam_Start(void);
 void Cam_Stop(void);
 void Cam_Capture(void);
 void Cam_Frex(void);
-void OverTrans_DMA_Init(uint32_t *Buffer);
+//void OverTrans_DMA_Init(uint32_t *Buffer);
 unsigned char write_i2c(unsigned int regID, unsigned char regDat);  
 unsigned char Read_i2c(unsigned int regID, unsigned char *regDat);
 unsigned char CF5642C_init(void);

@@ -310,7 +310,7 @@ void rt_hw_spi3_init(void)
 			rt_spi_device->bus->owner = rt_spi_device;
 			cfg.data_width = 8;
 			cfg.mode = RT_SPI_MODE_3 | RT_SPI_MSB; /* SPI Compatible: Mode 0 and Mode 3 */
-			cfg.max_hz = 2000000;//42 * 1000 * 1000; /* 50M */
+			cfg.max_hz = 12* 1000 * 1000; /* 50M */
 			rt_spi_configure(rt_spi_device, &cfg);		
 		}
 }

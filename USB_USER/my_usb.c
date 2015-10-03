@@ -35,6 +35,6 @@ void usb_thread_entry(void* parameter)
   {
     /* Host Task handler */
     USBH_Process(&USB_OTG_Core, &USB_Host);
-    //rt_thread_delay(1);   
+    rt_thread_delay(1);   
   }
 }
